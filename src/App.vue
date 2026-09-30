@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, ref } from 'vue'
 import { saveAs } from 'file-saver'
 import * as pdfjsLib from 'pdfjs-dist'
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import { detectLocale, translate, type Locale, type MessageKey } from './i18n'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
 
@@ -23,14 +24,27 @@ type WorkerMessage =
   | { type: 'error'; id: string; message: string }
 
 const items = ref<PdfItem[]>([])
+const locale = ref<Locale>(typeof localStorage !== 'undefined' ? (localStorage.getItem('quickso-locale') as Locale || detectLocale()) : detectLocale())
 const isDragging = ref(false)
 const isMerging = ref(false)
 const dragIndex = ref<number | null>(null)
 const outputName = ref('quickso-merged.pdf')
-const statusText = ref('等待添加 PDF 文件')
+const statusText = ref('')
 const statusKind = ref<'normal' | 'success' | 'error'>('normal')
 const fileInput = ref<HTMLInputElement | null>(null)
 const showClearConfirm = ref(false)
+
+if (typeof document !== 'undefined') document.documentElement.lang = locale.value
+
+function t(key: MessageKey, params: Record<string, string | number> = {}) {
+  return translate(locale.value, key, params)
+}
+
+function setLocale(next: Locale) {
+  locale.value = next
+  if (typeof localStorage !== 'undefined') localStorage.setItem('quickso-locale', next)
+  if (typeof document !== 'undefined') document.documentElement.lang = next
+}
 const parseTotal = ref(0)
 const parseCompleted = ref(0)
 const parseStartedAt = ref<number | null>(null)
@@ -43,7 +57,7 @@ const pending = new Map<string, (message: WorkerMessage) => void>()
 worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
   const message = event.data
   if (message.type === 'merge:progress') {
-    statusText.value = `正在合并 · 已处理 ${message.pages} 页`
+    statusText.value = t('mergeProgress', { pages: message.pages })
     return
   }
   const resolve = pending.get(message.id)
@@ -62,17 +76,18 @@ const isParsing = computed(() => items.value.some((item) => item.status === 'que
 const allReady = computed(() => items.value.length > 0 && readyCount.value === items.value.length)
 const parseActive = computed(() => parseTotal.value > 0 && parseCompleted.value < parseTotal.value)
 const effectiveStatusText = computed(() => {
-  if (!items.value.length || statusKind.value === 'error' || statusKind.value === 'success' || isMerging.value) return statusText.value
-  if (isParsing.value) return `正在解析 ${resolvedCount.value}/${items.value.length} 个文件 · ${parseEta.value}`
-  if (failedCount.value) return `已解析 ${readyCount.value} 个文件，${failedCount.value} 个文件失败`
-  return `已准备 ${readyCount.value} 个文件，可开始合并`
+  if (!items.value.length) return statusText.value || t('waitingAdd')
+  if (statusKind.value === 'error' || statusKind.value === 'success' || isMerging.value) return statusText.value
+  if (isParsing.value) return t('parsingFiles', { done: resolvedCount.value, total: items.value.length, eta: parseEta.value })
+  if (failedCount.value) return t('failedSummary', { ready: readyCount.value, failed: failedCount.value })
+  return t('readyToMerge', { count: readyCount.value })
 })
 const parseEta = computed(() => {
-  if (!parseActive.value && parseTotal.value > 0 && parseCompleted.value >= parseTotal.value) return '解析完成'
-  if (!parseStartedAt.value || parseCompleted.value === 0) return '预计计算中'
+  if (!parseActive.value && parseTotal.value > 0 && parseCompleted.value >= parseTotal.value) return t('parseComplete')
+  if (!parseStartedAt.value || parseCompleted.value === 0) return t('estimating')
   const elapsed = (parseNow.value - parseStartedAt.value) / 1000
   const remaining = Math.max(0, Math.ceil((elapsed / parseCompleted.value) * (parseTotal.value - parseCompleted.value)))
-  return remaining < 1 ? '即将完成' : `预计还需 ${formatDuration(remaining)}`
+  return remaining < 1 ? t('soonDone') : `${locale.value === 'zh-CN' ? '预计还需 ' : 'About '}${formatDuration(remaining)}`
 })
 
 function uid() {
@@ -86,10 +101,10 @@ function formatBytes(bytes: number) {
 }
 
 function formatDuration(seconds: number) {
-  if (seconds < 60) return `${seconds} 秒`
+  if (seconds < 60) return t('seconds', { value: seconds })
   const minutes = Math.floor(seconds / 60)
   const rest = seconds % 60
-  return rest ? `${minutes} 分 ${rest} 秒` : `${minutes} 分钟`
+  return rest ? t('minutesSeconds', { minutes, seconds: rest }) : t('minutes', { value: minutes })
 }
 
 function timestamp() {
@@ -125,7 +140,7 @@ function analyze(item: PdfItem) {
       } else if (message.type === 'error') {
         target.status = 'error'
         target.progress = 0
-        target.error = '无法读取该 PDF'
+    target.error = t('invalidPdf')
       }
       resolve()
     })
@@ -135,7 +150,7 @@ function analyze(item: PdfItem) {
     }).catch(() => {
       target.status = 'error'
       target.progress = 0
-      target.error = '无法读取该 PDF'
+      target.error = t('invalidPdf')
       resolve()
     })
   })
@@ -163,7 +178,7 @@ async function renderThumbnail(item: PdfItem) {
 async function addFiles(fileList: FileList | File[]) {
   const files = Array.from(fileList).filter((file) => file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))
   if (!files.length) {
-    statusText.value = '请选择 PDF 文件'
+    statusText.value = t('choosePdf')
     statusKind.value = 'error'
     return
   }
@@ -178,16 +193,16 @@ async function addFiles(fileList: FileList | File[]) {
   parseNow.value = Date.now()
   if (parseTimer) clearInterval(parseTimer)
   parseTimer = setInterval(() => { parseNow.value = Date.now() }, 250)
-  statusText.value = `正在解析 ${parseCompleted.value}/${parseTotal.value} 个文件 · ${parseEta.value}`
+  statusText.value = t('parsingFiles', { done: parseCompleted.value, total: parseTotal.value, eta: parseEta.value })
   await Promise.all(additions.map(async (item) => {
     await analyze(item)
     parseCompleted.value += 1
-    statusText.value = `正在解析 ${parseCompleted.value}/${parseTotal.value} 个文件 · ${parseEta.value}`
+    statusText.value = t('parsingFiles', { done: parseCompleted.value, total: parseTotal.value, eta: parseEta.value })
   }))
   if (parseTimer) clearInterval(parseTimer)
   parseTimer = null
   parseNow.value = Date.now()
-  statusText.value = `已准备 ${readyCount.value} 个文件，可开始合并`
+  statusText.value = t('readyToMerge', { count: readyCount.value })
 }
 
 function onInput(event: Event) {
@@ -220,7 +235,7 @@ function onDragEnd() { dragIndex.value = null }
 function removeItem(index: number) {
   items.value.splice(index, 1)
   statusKind.value = 'normal'
-  statusText.value = items.value.length ? `${readyCount.value} 个文件已就绪` : '等待添加 PDF 文件'
+  statusText.value = items.value.length ? t('readyToMerge', { count: readyCount.value }) : t('waitingAdd')
 }
 
 function clearAll() {
@@ -232,7 +247,7 @@ function clearAll() {
   if (parseTimer) clearInterval(parseTimer)
   parseTimer = null
   statusKind.value = 'normal'
-  statusText.value = '等待添加 PDF 文件'
+  statusText.value = t('waitingAdd')
 }
 
 function requestClearAll() {
@@ -252,16 +267,16 @@ function requestMerge() {
   if (!allReady.value || isMerging.value) return
   isMerging.value = true
   statusKind.value = 'normal'
-  statusText.value = '正在准备合并…'
+  statusText.value = t('preparingMerge')
   const id = uid()
   pending.set(id, (message) => {
     isMerging.value = false
     if (message.type === 'merge:done') {
       saveAs(new Blob([message.bytes], { type: 'application/pdf' }), normalizeName(outputName.value))
-      statusText.value = `合并完成 · ${totalPages.value} 页已下载`
+      statusText.value = t('mergeDone', { pages: totalPages.value })
       statusKind.value = 'success'
     } else if (message.type === 'error') {
-      statusText.value = message.message || '合并失败，请检查文件'
+      statusText.value = message.message || t('mergeError')
       statusKind.value = 'error'
     }
   })
@@ -277,62 +292,62 @@ onBeforeUnmount(() => {
 <template>
   <div class="app-shell">
     <header class="container nav">
-      <div class="brand"><div class="brand-mark"><span>QS</span></div><span>QuickSo PDF</span></div>
-      <div class="nav-note">简洁 · 私密 · 浏览器本地处理</div>
+      <div class="brand"><div class="brand-mark"><span>QS</span></div><span>{{ t('brand') }}</span></div>
+      <div class="nav-tools"><div class="nav-note">{{ t('navNote') }}</div><button class="language-toggle" type="button" :aria-label="locale === 'zh-CN' ? 'Switch to English' : '切换中文'" @click="setLocale(locale === 'zh-CN' ? 'en' : 'zh-CN')">{{ locale === 'zh-CN' ? 'EN' : '中文' }}</button></div>
     </header>
 
     <main class="container workspace">
       <section class="hero">
-        <div class="eyebrow"><span class="eyebrow-dot" /> PDF WORKSPACE</div>
-        <h1>把 PDF 合在一起，<br /><span style="color:#0f766e">就这么简单。</span></h1>
-        <p class="hero-copy">文件不离开你的浏览器。<br />拖入 PDF → 合并 → 下载。</p>
-        <div class="trust-row"><span class="trust-badge">零上传</span><span class="trust-badge">零登录</span><span class="trust-badge">零广告</span><div class="verify-note"><strong>如何验证？</strong><span>打开 DevTools → Network，操作时不会出现包含文件数据的请求。</span></div></div>
+        <div class="eyebrow"><span class="eyebrow-dot" /> {{ t('eyebrow') }}</div>
+        <h1>{{ t('title') }}</h1>
+        <p class="hero-copy">{{ t('subtitle') }}<br />{{ t('flow') }}</p>
+        <div class="trust-row"><span class="trust-badge">{{ t('trustUpload') }}</span><span class="trust-badge">{{ t('trustLogin') }}</span><span class="trust-badge">{{ t('trustAds') }}</span><div class="verify-note"><strong>{{ t('verifyTitle') }}</strong><span>{{ t('verifyText') }}</span></div></div>
       </section>
 
       <section class="panel" style="padding: 14px">
         <div class="dropzone" :class="{ active: isDragging }" @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false" @drop.prevent="onDrop">
           <div class="dropzone-icon" aria-hidden="true"><span>PDF</span></div>
-          <h2>拖放 PDF 到这里</h2>
-          <p>支持多个文件 · 单个文件最大建议 100 MB</p>
-          <button class="primary-btn" type="button" @click="fileInput?.click()"><span>＋</span> 选择 PDF 文件</button>
+          <h2>{{ t('dropHere') }}</h2>
+          <p>{{ t('dropHint') }}</p>
+          <button class="primary-btn" type="button" @click="fileInput?.click()"><span>＋</span> {{ t('selectFiles') }}</button>
           <input ref="fileInput" hidden type="file" accept="application/pdf,.pdf" multiple @change="onInput" />
         </div>
       </section>
 
       <section class="stats" :class="{ 'stats-empty': !items.length }">
-        <div class="stat"><div class="stat-label">文件数</div><div class="stat-value">{{ items.length }}</div></div>
-        <div class="stat"><div class="stat-label">总页数</div><div class="stat-value">{{ totalPages }}</div></div>
-        <div class="stat"><div class="stat-label">源文件大小</div><div class="stat-value">{{ formatBytes(totalBytes) }}</div></div>
-        <div class="stat"><div class="stat-label">解析状态</div><div class="stat-value small">{{ !items.length ? '等待文件' : isParsing ? '处理中' : failedCount ? `${failedCount} 个失败` : '全部就绪' }}</div></div>
+        <div class="stat"><div class="stat-label">{{ t('fileCount') }}</div><div class="stat-value">{{ items.length }}</div></div>
+        <div class="stat"><div class="stat-label">{{ t('totalPages') }}</div><div class="stat-value">{{ totalPages }}</div></div>
+        <div class="stat"><div class="stat-label">{{ t('sourceSize') }}</div><div class="stat-value">{{ formatBytes(totalBytes) }}</div></div>
+        <div class="stat"><div class="stat-label">{{ t('parseStatus') }}</div><div class="stat-value small">{{ !items.length ? t('waitingFiles') : isParsing ? t('parsing') : failedCount ? t('failedCount', { count: failedCount }) : t('allReady') }}</div></div>
       </section>
 
       <section class="panel files-panel">
-        <div class="panel-head"><div><div class="panel-title">合并顺序</div><div class="panel-meta">拖动行项目可调整顺序</div></div><button v-if="items.length" class="subtle-btn" type="button" @click="requestClearAll">清空全部</button></div>
+        <div class="panel-head"><div><div class="panel-title">{{ t('orderTitle') }}</div><div class="panel-meta">{{ t('orderHint') }}</div></div><button v-if="items.length" class="subtle-btn" type="button" @click="requestClearAll">{{ t('clearAll') }}</button></div>
         <div v-if="items.length" class="file-list">
           <div v-for="(item, index) in items" :key="item.id" class="file-row" :class="{ dragging: dragIndex === index }" draggable="true" @dragstart="onDragStart(index)" @dragover.prevent="onDragOver(index)" @dragend="onDragEnd">
             <div class="thumb"><img v-if="item.thumbnail" :src="item.thumbnail" :alt="item.file.name" /><span v-else>PDF</span></div>
-            <div style="min-width:0"><div class="file-name" :title="item.file.name">{{ item.file.name }}</div><div class="file-meta"><span>{{ formatBytes(item.file.size) }}</span><span>{{ item.pages === null ? '解析中…' : `${item.pages} 页` }}</span><span v-if="item.status === 'ready'" class="file-ready">✓ 已解析</span><span v-if="item.status === 'error'" style="color:#dc5548">读取失败</span></div><div v-if="item.status !== 'ready'" class="item-progress"><div class="item-progress-track"><div class="item-progress-fill" :class="{ error: item.status === 'error' }" :style="{ width: `${item.progress}%` }" /></div><span>{{ item.status === 'error' ? '解析失败' : `${item.progress}%` }}</span></div></div>
-            <div class="file-actions"><button class="icon-btn" type="button" title="上移" :disabled="index === 0" @click="move(index, -1)">↑</button><button class="icon-btn" type="button" title="下移" :disabled="index === items.length - 1" @click="move(index, 1)">↓</button><button class="icon-btn remove-btn" type="button" title="移除" @click="removeItem(index)">×</button></div>
+            <div style="min-width:0"><div class="file-name" :title="item.file.name">{{ item.file.name }}</div><div class="file-meta"><span>{{ formatBytes(item.file.size) }}</span><span>{{ item.pages === null ? t('parsingShort') : locale === 'zh-CN' ? `${item.pages} 页` : `${item.pages} pages` }}</span><span v-if="item.status === 'ready'" class="file-ready">✓ {{ t('parsed') }}</span><span v-if="item.status === 'error'" style="color:#dc5548">{{ t('readFailed') }}</span></div><div v-if="item.status !== 'ready'" class="item-progress"><div class="item-progress-track"><div class="item-progress-fill" :class="{ error: item.status === 'error' }" :style="{ width: `${item.progress}%` }" /></div><span>{{ item.status === 'error' ? t('parseFailed') : `${item.progress}%` }}</span></div></div>
+            <div class="file-actions"><button class="icon-btn" type="button" :title="t('moveUp')" :disabled="index === 0" @click="move(index, -1)">↑</button><button class="icon-btn" type="button" :title="t('moveDown')" :disabled="index === items.length - 1" @click="move(index, 1)">↓</button><button class="icon-btn remove-btn" type="button" :title="t('remove')" @click="removeItem(index)">×</button></div>
           </div>
         </div>
-        <div v-else class="empty-state">添加文件后会显示在这里，你可以自由调整合并顺序。</div>
+        <div v-else class="empty-state">{{ t('emptyFiles') }}</div>
       </section>
 
       <section class="panel action-bar">
-        <div class="output-field"><label for="output-name">输出文件名</label><input id="output-name" v-model="outputName" class="output-input" spellcheck="false" /></div>
-        <button class="primary-btn" type="button" :disabled="!allReady || isMerging" @click="requestMerge"><span>⇩</span>{{ isMerging ? '正在合并…' : '合并并下载' }}</button>
+        <div class="output-field"><label for="output-name">{{ t('outputName') }}</label><input id="output-name" v-model="outputName" class="output-input" spellcheck="false" /></div>
+        <button class="primary-btn" type="button" :disabled="!allReady || isMerging" @click="requestMerge"><span>⇩</span>{{ isMerging ? t('merging') : t('mergeDownload') }}</button>
       </section>
       <div class="status" :class="statusKind">{{ effectiveStatusText }}</div>
     </main>
 
-    <footer class="container footer"><span><strong>QuickSo PDF</strong> · 浏览器内 PDF 合并工具</span></footer>
+    <footer class="container footer"><span><strong>{{ t('brand') }}</strong> · {{ t('footer') }}</span></footer>
 
     <div v-if="showClearConfirm" class="modal-backdrop" role="presentation" @click.self="cancelClearAll">
       <section class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="clear-dialog-title">
         <div class="confirm-icon">!</div>
-        <h2 id="clear-dialog-title">清空所有文件？</h2>
-        <p>当前列表中的 {{ items.length }} 个 PDF 将被移除，此操作无法撤销。</p>
-        <div class="confirm-actions"><button class="subtle-btn" type="button" @click="cancelClearAll">取消</button><button class="danger-btn" type="button" @click="confirmClearAll">确认清空</button></div>
+        <h2 id="clear-dialog-title">{{ t('confirmTitle') }}</h2>
+        <p>{{ t('confirmText', { count: items.length }) }}</p>
+        <div class="confirm-actions"><button class="subtle-btn" type="button" @click="cancelClearAll">{{ t('cancel') }}</button><button class="danger-btn" type="button" @click="confirmClearAll">{{ t('confirmClear') }}</button></div>
       </section>
     </div>
   </div>

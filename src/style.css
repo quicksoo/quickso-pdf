@@ -29,6 +29,9 @@ button { cursor: pointer; }
 .brand-mark::after { content: ''; position: absolute; width: 19px; height: 19px; border: 2px solid #f7a79b; border-radius: 5px; transform: rotate(-16deg); top: 8px; left: 8px; }
 .brand-mark span { position: relative; z-index: 1; font-size: 12px; }
 .nav-note { color: #64748b; font-size: 13px; }
+.nav-tools { display: flex; align-items: center; gap: 12px; }
+.language-toggle { min-width: 42px; border: 1px solid #d9e2e8; border-radius: 8px; padding: 6px 9px; background: rgba(255,255,255,.75); color: #334155; font-size: 12px; font-weight: 700; }
+.language-toggle:hover { border-color: #86c4bb; color: #0f766e; background: #f3fbfa; }
 .hero { padding: 30px 0 24px; text-align: center; }
 .eyebrow { display: inline-flex; gap: 8px; align-items: center; padding: 7px 12px; border-radius: 99px; background: #e6f4f1; color: #0f766e; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; }
 .eyebrow-dot { width: 6px; height: 6px; background: #0f766e; border-radius: 50%; }
