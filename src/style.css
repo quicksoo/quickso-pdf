@@ -29,15 +29,21 @@ button { cursor: pointer; }
 .brand-mark::after { content: ''; position: absolute; width: 19px; height: 19px; border: 2px solid #f7a79b; border-radius: 5px; transform: rotate(-16deg); top: 8px; left: 8px; }
 .brand-mark span { position: relative; z-index: 1; font-size: 12px; }
 .nav-note { color: #64748b; font-size: 13px; }
-.hero { padding: 58px 0 36px; text-align: center; }
+.hero { padding: 30px 0 24px; text-align: center; }
 .eyebrow { display: inline-flex; gap: 8px; align-items: center; padding: 7px 12px; border-radius: 99px; background: #e6f4f1; color: #0f766e; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; }
 .eyebrow-dot { width: 6px; height: 6px; background: #0f766e; border-radius: 50%; }
-h1 { margin: 18px 0 12px; font-size: clamp(38px, 6vw, 64px); line-height: 1; letter-spacing: -0.055em; }
-.hero-copy { max-width: 620px; margin: 0 auto; color: #64748b; font-size: 16px; line-height: 1.65; }
+h1 { margin: 15px auto 12px; max-width: 760px; font-size: clamp(34px, 4.2vw, 46px); line-height: 1.08; letter-spacing: -0.05em; }
+.hero-copy { max-width: 620px; margin: 0 auto; color: #64748b; font-size: 15px; line-height: 1.65; }
+.trust-row { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 7px; margin: 14px auto 0; }
+.trust-badge { padding: 5px 9px; border: 1px solid #b8ddd7; border-radius: 999px; background: #edf8f6; color: #0f766e; font-size: 11px; font-weight: 800; }
+.verify-note { display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 7px; margin-left: 8px; color: #94a3b8; font-size: 11px; line-height: 1.5; }
+.verify-note strong { color: #64748b; font-size: 11px; }
 .workspace { padding-bottom: 76px; }
 .panel { background: rgba(255, 255, 255, 0.9); border: 1px solid #e2e8f0; border-radius: 18px; box-shadow: 0 18px 50px rgba(15, 23, 42, 0.07); }
 .dropzone { margin-top: 28px; padding: 38px 28px; border: 1.5px dashed #9ecbc4; background: linear-gradient(135deg, #f4fbfa 0%, #fffafa 100%); border-radius: 16px; text-align: center; transition: border-color .2s, transform .2s, background .2s; }
 .dropzone.active { border-color: #0f766e; background: #e9f7f4; transform: translateY(-2px); }
+.dropzone-icon { width: 48px; height: 58px; margin: 0 auto 13px; border: 1px solid #cbdedb; border-radius: 8px; background: rgba(255,255,255,.8); color: #8bb3ae; display: grid; place-items: center; font-size: 10px; font-weight: 800; letter-spacing: .04em; box-shadow: 0 8px 22px rgba(15,118,110,.07); position: relative; }
+.dropzone-icon::before { content: ''; position: absolute; top: 0; right: 0; border-top: 11px solid #d9ebe8; border-left: 11px solid transparent; border-top-right-radius: 6px; }
 .dropzone h2 { margin: 0; font-size: 18px; letter-spacing: -0.02em; }
 .dropzone p { margin: 8px 0 20px; color: #64748b; font-size: 13px; }
 .primary-btn { border: 0; border-radius: 10px; background: #0f172a; color: #fff; padding: 11px 17px; font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; transition: transform .2s, background .2s; }
@@ -46,6 +52,7 @@ h1 { margin: 18px 0 12px; font-size: clamp(38px, 6vw, 64px); line-height: 1; let
 .subtle-btn { border: 1px solid #e2e8f0; border-radius: 9px; background: white; color: #334155; padding: 8px 11px; font-size: 12px; font-weight: 600; }
 .subtle-btn:hover { border-color: #94a3b8; }
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
+.stats-empty .stat { border-style: dashed; background: rgba(255,255,255,.5); opacity: .65; }
 .stat { padding: 15px 16px; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; }
 .stat-label { color: #94a3b8; text-transform: uppercase; font-size: 10px; letter-spacing: .09em; font-weight: 700; }
 .stat-value { margin-top: 6px; font-size: 19px; font-weight: 800; letter-spacing: -0.03em; }

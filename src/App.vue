@@ -285,11 +285,13 @@ onBeforeUnmount(() => {
       <section class="hero">
         <div class="eyebrow"><span class="eyebrow-dot" /> PDF WORKSPACE</div>
         <h1>把 PDF 合在一起，<br /><span style="color:#0f766e">就这么简单。</span></h1>
-        <p class="hero-copy">无需上传服务器。拖入文件，调整顺序，点击合并。所有处理都在你的浏览器内完成。</p>
+        <p class="hero-copy">文件不离开你的浏览器。<br />拖入 PDF → 合并 → 下载。</p>
+        <div class="trust-row"><span class="trust-badge">零上传</span><span class="trust-badge">零登录</span><span class="trust-badge">零广告</span><div class="verify-note"><strong>如何验证？</strong><span>打开 DevTools → Network，操作时不会出现包含文件数据的请求。</span></div></div>
       </section>
 
       <section class="panel" style="padding: 14px">
         <div class="dropzone" :class="{ active: isDragging }" @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false" @drop.prevent="onDrop">
+          <div class="dropzone-icon" aria-hidden="true"><span>PDF</span></div>
           <h2>拖放 PDF 到这里</h2>
           <p>支持多个文件 · 单个文件最大建议 100 MB</p>
           <button class="primary-btn" type="button" @click="fileInput?.click()"><span>＋</span> 选择 PDF 文件</button>
@@ -297,7 +299,7 @@ onBeforeUnmount(() => {
         </div>
       </section>
 
-      <section class="stats">
+      <section class="stats" :class="{ 'stats-empty': !items.length }">
         <div class="stat"><div class="stat-label">文件数</div><div class="stat-value">{{ items.length }}</div></div>
         <div class="stat"><div class="stat-label">总页数</div><div class="stat-value">{{ totalPages }}</div></div>
         <div class="stat"><div class="stat-label">源文件大小</div><div class="stat-value">{{ formatBytes(totalBytes) }}</div></div>
@@ -323,7 +325,7 @@ onBeforeUnmount(() => {
       <div class="status" :class="statusKind">{{ effectiveStatusText }}</div>
     </main>
 
-    <footer class="container footer"><span><strong>QuickSo PDF</strong> · 你的文件始终留在你的设备上</span><span class="privacy">◉ 本地处理，不上传</span></footer>
+    <footer class="container footer"><span><strong>QuickSo PDF</strong> · 浏览器内 PDF 合并工具</span></footer>
 
     <div v-if="showClearConfirm" class="modal-backdrop" role="presentation" @click.self="cancelClearAll">
       <section class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="clear-dialog-title">
