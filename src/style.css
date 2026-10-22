@@ -30,7 +30,13 @@ button { cursor: pointer; }
 .brand-mark span { position: relative; z-index: 1; font-size: 12px; }
 .nav-note { color: #64748b; font-size: 13px; }
 .nav-tools { display: flex; align-items: center; gap: 12px; }
+.home-link { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px; border: 1px solid #d9e2e8; border-radius: 8px; color: #475569; background: rgba(255,255,255,.75); font-size: 12px; font-weight: 700; text-decoration: none; }
+.home-link:hover { border-color: #0f766e; color: #0f766e; }
 .language-toggle { min-width: 42px; border: 1px solid #d9e2e8; border-radius: 8px; padding: 6px 9px; background: rgba(255,255,255,.75); color: #334155; font-size: 12px; font-weight: 700; }
+.is-embedded .nav { position: relative; z-index: 3; height: 0; }
+.is-embedded .nav .brand, .is-embedded .nav-note, .is-embedded .home-link { display: none; }
+.is-embedded .nav-tools { position: absolute; top: 12px; right: 0; }
+.is-embedded .workspace { padding-top: 48px; }
 .language-toggle:hover { border-color: #86c4bb; color: #0f766e; background: #f3fbfa; }
 .hero { padding: 30px 0 24px; text-align: center; }
 .eyebrow { display: inline-flex; gap: 8px; align-items: center; padding: 7px 12px; border-radius: 99px; background: #e6f4f1; color: #0f766e; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; }

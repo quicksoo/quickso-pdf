@@ -293,7 +293,7 @@ onBeforeUnmount(() => {
   <div class="app-shell">
     <header class="container nav">
       <div class="brand"><div class="brand-mark"><span>QS</span></div><span>{{ t('brand') }}</span></div>
-      <div class="nav-tools"><div class="nav-note">{{ t('navNote') }}</div><button class="language-toggle" type="button" :aria-label="locale === 'zh-CN' ? 'Switch to English' : '切换中文'" @click="setLocale(locale === 'zh-CN' ? 'en' : 'zh-CN')">{{ locale === 'zh-CN' ? 'EN' : '中文' }}</button></div>
+      <div class="nav-tools"><div class="nav-note">{{ t('navNote') }}</div><a class="home-link" href="https://quickso.top/" target="_top"><span aria-hidden="true">←</span> QuickSo 首页</a><button class="language-toggle" type="button" :aria-label="locale === 'zh-CN' ? 'Switch to English' : '切换中文'" @click="setLocale(locale === 'zh-CN' ? 'en' : 'zh-CN')">{{ locale === 'zh-CN' ? 'EN' : '中文' }}</button></div>
     </header>
 
     <main class="container workspace">
