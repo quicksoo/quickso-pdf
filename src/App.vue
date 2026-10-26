@@ -4,6 +4,7 @@ import { saveAs } from 'file-saver'
 import * as pdfjsLib from 'pdfjs-dist'
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { detectLocale, translate, type Locale, type MessageKey } from './i18n'
+import { showFollowPrompt } from './follow-prompt'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
 
@@ -272,9 +273,15 @@ function requestMerge() {
   pending.set(id, (message) => {
     isMerging.value = false
     if (message.type === 'merge:done') {
-      saveAs(new Blob([message.bytes], { type: 'application/pdf' }), normalizeName(outputName.value))
-      statusText.value = t('mergeDone', { pages: totalPages.value })
-      statusKind.value = 'success'
+      try {
+        saveAs(new Blob([message.bytes], { type: 'application/pdf' }), normalizeName(outputName.value))
+        statusText.value = t('mergeDone', { pages: totalPages.value })
+        statusKind.value = 'success'
+        showFollowPrompt(locale.value)
+      } catch {
+        statusText.value = t('mergeError')
+        statusKind.value = 'error'
+      }
     } else if (message.type === 'error') {
       statusText.value = message.message || t('mergeError')
       statusKind.value = 'error'
